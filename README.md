@@ -2,6 +2,19 @@
 
 🎯 **Hệ thống đánh giá đa người (Multi-Subject Evaluation System)** - Ứng dụng web cho phép tạo và quản lý phiên đánh giá hiệu suất cho nhiều nhân viên với các bộ câu hỏi linh hoạt.
 
+---
+
+## 📋 Mục Lục
+
+- [Tính năng chính](#-tính-năng-chính)
+- [Cài đặt](#-cài-đặt)
+- [Cấu hình Database](#-cấu-hình-database)
+- [Build & Deploy](#-build--deploy)
+- [Tùy chỉnh](#-tùy-chỉnh)
+- [Hướng dẫn sử dụng](#-hướng-dẫn-sử-dụng)
+
+---
+
 ## ✨ Tính năng chính
 
 ### 🔧 Cho Admin/HR:
@@ -29,6 +42,7 @@
 ### Prerequisites
 - Node.js >= 18.0.0
 - npm hoặc yarn
+- PostgreSQL >= 14
 
 ### Clone và cài đặt dependencies
 
@@ -39,31 +53,207 @@ cd he-thong-danh-gia
 
 # Cài đặt dependencies
 npm install
-
-# Hoặc dùng yarn
-yarn install
 ```
 
-## 🏃 Chạy ứng dụng
+---
+
+## 🗄️ Cấu hình Database
+
+### 1. Cài đặt PostgreSQL
+
+**Windows:**
+1. Tải từ https://www.postgresql.org/download/windows/
+2. Cài đặt và nhớ mật khẩu đã đặt
+
+**macOS:**
+```bash
+brew install postgresql@14
+brew services start postgresql@14
+```
+
+**Linux (Ubuntu/Debian):**
+```bash
+sudo apt update
+sudo apt install postgresql postgresql-contrib
+```
+
+### 2. Tạo Database
+
+```bash
+# Kết nối PostgreSQL
+psql -U postgres
+
+# Tạo database
+CREATE DATABASE he_thong_danh_gia;
+\q
+```
+
+### 3. Cấu hình file .env
+
+Tạo file `server/.env`:
+
+```env
+DB_USER=postgres
+DB_HOST=localhost
+DB_NAME=he_thong_danh_gia
+DB_PASSWORD=your_password_here
+DB_PORT=5432
+PORT=5000
+```
+
+### 4. Khởi tạo bảng
+
+```bash
+npm run init-db
+```
+
+---
+
+## 🏃 Build & Deploy
 
 ### Development mode
 
 ```bash
-# Chạy frontend (Vite dev server)
-npm run dev
+# Chạy cả frontend + backend
+npm run dev:all
 
-# Ứng dụng sẽ chạy tại http://localhost:3000
+# Frontend: http://localhost:3000
+# Backend API: http://localhost:5000
 ```
 
-### Build cho production
+### Build cho Production
 
 ```bash
 # Build frontend
 npm run build
 
-# Preview production build
-npm run preview
+# Kết quả build nằm trong thư mục /dist
 ```
+
+### Deploy
+
+1. **Build frontend:**
+   ```bash
+   npm run build
+   ```
+
+2. **Upload thư mục `/dist`** lên hosting (Nginx, Apache, Vercel, Netlify...)
+
+3. **Chạy backend server:**
+   ```bash
+   npm run server
+   ```
+
+4. **Cấu hình API URL** trong `src/services/api.ts`:
+   ```typescript
+   const API_BASE_URL = 'https://your-api-domain.com/api';
+   ```
+
+---
+
+## 🎨 Tùy chỉnh
+
+### Thay đổi Logo
+
+1. **Thay file logo:**
+   - Đặt logo mới vào `public/assets/logo.png`
+   - Kích thước khuyến nghị: 200x50px hoặc tương đương
+
+2. **Cập nhật trong code** (nếu dùng logo ở nhiều nơi):
+   ```tsx
+   // src/components/layouts/AdminLayout.tsx
+   <img src="/assets/logo.png" alt="Logo" className="h-8" />
+   ```
+
+3. **Thay đổi favicon:**
+   - Đặt favicon mới vào `public/favicon.ico`
+   - Hoặc cập nhật trong `index.html`:
+     ```html
+     <link rel="icon" type="image/png" href="/assets/favicon.png" />
+     ```
+
+### Thay đổi Tên & Branding
+
+1. **Tên ứng dụng** - sửa trong các file:
+   - `index.html` - thẻ `<title>`
+   - `src/components/layouts/AdminLayout.tsx` - header
+   - `src/pages/Login.tsx` - trang đăng nhập
+
+2. **Màu sắc chính** - sửa trong `tailwind.config.js`:
+   ```javascript
+   theme: {
+     extend: {
+       colors: {
+         primary: {
+           50: '#eff6ff',
+           500: '#3b82f6',  // Màu chính
+           600: '#2563eb',
+           700: '#1d4ed8',
+         }
+       }
+     }
+   }
+   ```
+
+### Thay đổi Link API
+
+Sửa file `src/services/api.ts`:
+
+```typescript
+// Development
+const API_BASE_URL = 'http://localhost:5000/api';
+
+// Production
+const API_BASE_URL = 'https://api.yourdomain.com/api';
+
+// Hoặc dùng biến môi trường
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+```
+
+Nếu dùng biến môi trường, tạo file `.env` ở root:
+```env
+VITE_API_URL=https://api.yourdomain.com/api
+```
+
+### Thay đổi Thông tin đăng nhập
+
+Sửa file `src/contexts/AuthContext.tsx`:
+
+```typescript
+const ADMIN_CREDENTIALS = {
+  username: 'Admin',
+  password: 'YourNewPassword@123'
+};
+```
+
+> ⚠️ **Lưu ý:** Trong production, nên chuyển xác thực sang backend với JWT token.
+
+### Thay đổi Danh sách đối tượng đánh giá
+
+Sửa file `src/pages/admin/CreateTemplate.tsx`:
+
+```typescript
+const [allSubjects] = useState<SubjectInTemplate[]>([
+  { id: '1', name: 'Nguyễn Văn A', position: 'Giám đốc', department: 'Ban Giám Đốc' },
+  { id: '2', name: 'Trần Thị B', position: 'Trưởng phòng', department: 'Phòng Kinh Doanh' },
+  // Thêm nhân viên khác...
+]);
+```
+
+### Thay đổi Danh sách phòng ban
+
+Sửa file `src/pages/evaluator/EvaluationForm.tsx`:
+
+```typescript
+const DEPARTMENTS = [
+  'Phòng Kỹ thuật',
+  'Phòng Kinh doanh',
+  'Phòng Marketing',
+  // Thêm phòng ban khác...
+];
+```
+
+---
 
 ## 📁 Cấu trúc thư mục
 
@@ -178,26 +368,37 @@ he-thong-danh-gia/
 
 ```bash
 # Development
-npm run dev          # Start dev server
+npm run dev          # Start frontend dev server
+npm run server       # Start backend server
+npm run dev:all      # Start cả frontend + backend
 
 # Build
 npm run build        # Build for production
 npm run preview      # Preview production build
 
-# Backend (khi có)
-npm run server       # Start Express server
+# Database
+npm run init-db      # Khởi tạo bảng trong database
 ```
+
+### Cấu trúc Link đánh giá
+
+Link đánh giá được tạo tự động từ tên bộ câu hỏi:
+- Tên: "Đánh giá lãnh đạo Q1/2024"
+- Link: `https://yourdomain.com/evaluate/danh-gia-lanh-dao-q12024`
+
+---
 
 ## 📝 Notes
 
-- Hiện tại đang dùng mock data cho demo
-- Cần implement backend API cho production
-- Database schema cần được thiết kế cho các entities: Templates, Sessions, Subjects, Responses
+- **Database:** PostgreSQL với các bảng: question_templates, evaluation_sessions, evaluation_responses
+- **Authentication:** Đăng nhập đơn giản cho Admin (có thể mở rộng với JWT)
+- **API:** RESTful API với Express.js
+
+---
 
 ## 🎯 Future Enhancements
 
-- [ ] Backend API với Express + MongoDB/PostgreSQL
-- [ ] Authentication & Authorization
+- [ ] JWT Authentication
 - [ ] Email notifications
 - [ ] Real-time collaboration
 - [ ] Advanced analytics & reporting
@@ -205,9 +406,11 @@ npm run server       # Start Express server
 - [ ] Multi-language support
 - [ ] Dark mode
 
+---
+
 ## 👨‍💻 Author
 
-**Khánh - MKT Software**
+**ViTech Group**
 
 ## 📄 License
 
@@ -216,4 +419,4 @@ MIT License
 ---
 
 **Version:** 1.0.0  
-**Last Updated:** 2026-01-21
+**Last Updated:** 2026-01-22

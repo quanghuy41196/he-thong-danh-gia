@@ -13,6 +13,7 @@ const api = axios.create({
 export const templatesAPI = {
   getAll: () => api.get('/templates'),
   getById: (id: string) => api.get(`/templates/${id}`),
+  getBySlug: (slug: string) => api.get(`/templates/slug/${slug}`),
   create: (template: any) => api.post('/templates', template),
   update: (id: string, template: any) => api.put(`/templates/${id}`, template),
   delete: (id: string) => api.delete(`/templates/${id}`),

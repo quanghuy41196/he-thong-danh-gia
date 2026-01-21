@@ -19,7 +19,7 @@ const DEPARTMENTS = [
 
 const EvaluationForm: React.FC = () => {
   const navigate = useNavigate();
-  const { templateId } = useParams();
+  const { slug } = useParams();
   
   const [template, setTemplate] = useState<QuestionTemplate | null>(null);
   const [currentSubjectIndex, setCurrentSubjectIndex] = useState(0);
@@ -33,11 +33,11 @@ const EvaluationForm: React.FC = () => {
 
   useEffect(() => {
     loadTemplateData();
-  }, [templateId]);
+  }, [slug]);
 
   const loadTemplateData = async () => {
     try {
-      const response = await templatesAPI.getById(templateId || '');
+      const response = await templatesAPI.getBySlug(slug || '');
       const templateData = response.data;
       
       // Check if template is active (default to true if not set)
@@ -147,7 +147,7 @@ const EvaluationForm: React.FC = () => {
         
         // Submit to API
         await evaluationsAPI.submit({
-          templateId,
+          templateId: template?.id,
           department,
           selectedSubjects,
           answers,

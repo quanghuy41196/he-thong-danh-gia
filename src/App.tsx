@@ -1,6 +1,9 @@
 
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider } from './contexts/AuthContext';
+import ProtectedRoute from './components/ProtectedRoute';
 import AdminLayout from './components/layouts/AdminLayout';
+import Login from './pages/Login';
 import QuestionTemplates from './pages/admin/QuestionTemplates';
 import TemplateTypeSelection from './pages/admin/TemplateTypeSelection';
 import CreateTemplate from './pages/admin/CreateTemplate';
@@ -9,25 +12,34 @@ import EvaluationForm from './pages/evaluator/EvaluationForm';
 
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        {/* Admin Routes */}
-        <Route path="/admin" element={<AdminLayout />}>
-          <Route index element={<Navigate to="/admin/templates" replace />} />
-          <Route path="templates" element={<QuestionTemplates />} />
-          <Route path="templates/new" element={<TemplateTypeSelection />} />
-          <Route path="templates/new/bld" element={<CreateTemplate />} />
-          <Route path="templates/:id/edit" element={<CreateTemplate />} />
-          <Route path="templates/:templateId/history" element={<EvaluationHistory />} />
-        </Route>
+    <AuthProvider>
+      <BrowserRouter>
+        <Routes>
+          {/* Login Route - Public */}
+          <Route path="/login" element={<Login />} />
 
-        {/* Evaluator Routes */}
-        <Route path="/evaluate/:templateId" element={<EvaluationForm />} />
+          {/* Admin Routes - Protected */}
+          <Route path="/admin" element={
+            <ProtectedRoute>
+              <AdminLayout />
+            </ProtectedRoute>
+          }>
+            <Route index element={<Navigate to="/admin/templates" replace />} />
+            <Route path="templates" element={<QuestionTemplates />} />
+            <Route path="templates/new" element={<TemplateTypeSelection />} />
+            <Route path="templates/new/bld" element={<CreateTemplate />} />
+            <Route path="templates/:id/edit" element={<CreateTemplate />} />
+            <Route path="templates/:templateId/history" element={<EvaluationHistory />} />
+          </Route>
 
-        {/* Default Route */}
-        <Route path="/" element={<Navigate to="/admin" replace />} />
-      </Routes>
-    </BrowserRouter>
+          {/* Evaluator Routes - Public (cho người đánh giá) */}
+          <Route path="/evaluate/:slug" element={<EvaluationForm />} />
+
+          {/* Default Route */}
+          <Route path="/" element={<Navigate to="/admin" replace />} />
+        </Routes>
+      </BrowserRouter>
+    </AuthProvider>
   );
 }
 

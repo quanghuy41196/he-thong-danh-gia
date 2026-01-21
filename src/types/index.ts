@@ -34,6 +34,7 @@ export interface SubjectQuestions {
 export interface QuestionTemplate {
   id: string;
   name: string;
+  slug?: string;
   description: string;
   roles: string[];
   questions: Question[]; // Câu hỏi chung

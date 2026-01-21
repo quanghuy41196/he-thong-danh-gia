@@ -2,14 +2,19 @@
 CREATE TABLE IF NOT EXISTS question_templates (
     id VARCHAR(255) PRIMARY KEY,
     name VARCHAR(500) NOT NULL,
+    slug VARCHAR(500) UNIQUE,
     description TEXT,
     roles JSONB DEFAULT '[]',
     questions JSONB DEFAULT '[]',
     subjects JSONB DEFAULT '[]',
     subject_questions JSONB DEFAULT '[]',
+    is_active BOOLEAN DEFAULT false,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Index cho slug
+CREATE INDEX IF NOT EXISTS idx_templates_slug ON question_templates(slug);
 
 -- Bảng evaluation_sessions: Lưu phiên đánh giá
 CREATE TABLE IF NOT EXISTS evaluation_sessions (
@@ -54,13 +59,3 @@ $$ language 'plpgsql';
 
 CREATE TRIGGER update_templates_updated_at BEFORE UPDATE ON question_templates
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
--- Chèn dữ liệu mẫu (tùy chọn)
-INSERT INTO question_templates (id, name, description, roles, questions, subjects, subject_questions, created_at, updated_at)
-VALUES 
-    ('template-1', 'Đánh giá lãnh đạo Q1/2024', 'Bộ câu hỏi đánh giá hiệu quả lãnh đạo quý 1', '[]', 
-    '[{"id":"q1","type":"rating-5","content":"Đánh giá chung về khả năng lãnh đạo","required":true}]',
-    '[{"id":"1","name":"Lê Đức Nam"},{"id":"2","name":"Hoàng Thị Nga"}]',
-    '[{"subjectId":"1","questions":[{"id":"sq1","type":"rating-5","content":"Khả năng giao tiếp","required":true}]}]',
-    NOW(), NOW())
-ON CONFLICT (id) DO NOTHING;

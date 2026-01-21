@@ -19,7 +19,14 @@ const QuestionTemplates: React.FC = () => {
   const loadTemplates = async () => {
     try {
       const response = await templatesAPI.getAll();
-      setTemplates(response.data);
+      // Chuyển đổi snake_case sang camelCase
+      const templates = response.data.map((t: any) => ({
+        ...t,
+        isActive: t.is_active ?? t.isActive ?? false,
+        createdAt: t.created_at ?? t.createdAt,
+        updatedAt: t.updated_at ?? t.updatedAt,
+      }));
+      setTemplates(templates);
     } catch (error) {
       console.error('Error loading templates:', error);
     } finally {
@@ -28,7 +35,7 @@ const QuestionTemplates: React.FC = () => {
   };
 
   const handleToggleActive = async (template: QuestionTemplate) => {
-    const newStatus = !template.isActive;
+    const newStatus = !(template.isActive);
     try {
       await templatesAPI.update(template.id, { ...template, isActive: newStatus });
       setTemplates(templates.map(t => 
@@ -147,7 +154,7 @@ const QuestionTemplates: React.FC = () => {
                       {template.isActive ? 'Tắt' : 'Bật'}
                     </Button>
                     
-                    <Link to={`/evaluate/${template.id}`} target="_blank">
+                    <Link to={`/evaluate/${template.slug || template.id}`} target="_blank">
                       <Button variant="ghost" size="sm" icon={<Eye className="w-4 h-4" />}>
                         Xem trước
                       </Button>
@@ -168,7 +175,8 @@ const QuestionTemplates: React.FC = () => {
                         size="sm"
                         icon={<Copy className="w-4 h-4" />}
                         onClick={() => {
-                          const link = `${window.location.origin}/evaluate/${template.id}`;
+                          const slug = template.slug || template.id;
+                          const link = `${window.location.origin}/evaluate/${slug}`;
                           navigator.clipboard.writeText(link);
                           alert('Đã copy link đánh giá!');
                         }}

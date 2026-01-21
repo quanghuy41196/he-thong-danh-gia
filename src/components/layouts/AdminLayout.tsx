@@ -1,15 +1,25 @@
 import React from 'react';
-import { Outlet, Link, useLocation } from 'react-router-dom';
-import { FileText } from 'lucide-react';
+import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
+import { FileText, LogOut } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
 
 const AdminLayout: React.FC = () => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { logout } = useAuth();
 
   const navigation = [
     { name: 'Bộ câu hỏi', href: '/admin/templates', icon: FileText },
   ];
 
   const isActive = (path: string) => location.pathname.startsWith(path);
+
+  const handleLogout = () => {
+    if (confirm('Bạn có chắc muốn đăng xuất?')) {
+      logout();
+      navigate('/login');
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -25,6 +35,13 @@ const AdminLayout: React.FC = () => {
                 Admin
               </span>
             </div>
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+            >
+              <LogOut className="w-4 h-4" />
+              <span>Đăng xuất</span>
+            </button>
           </div>
         </div>
       </header>
