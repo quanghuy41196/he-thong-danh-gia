@@ -82,7 +82,8 @@ const EvaluationHistory: React.FC = () => {
 
     // Get all subjects
     const subjects = template.subjects || [];
-    const templateQuestions = (template as any).templateQuestions || [];
+    // Support cả camelCase và snake_case từ database
+    const templateQuestions = (template as any).templateQuestions || (template as any).template_questions || [];
     const commonQuestions = template.questions || [];
 
     // Build headers
@@ -463,7 +464,8 @@ const EvaluationHistory: React.FC = () => {
                   if (subjectEvaluations.length === 0) return null;
                   
                   // Get template questions
-                  const templateQuestions = (template as any).templateQuestions || [];
+                  // Support cả camelCase và snake_case
+                  const templateQuestions = (template as any).templateQuestions || (template as any).template_questions || [];
                   const commonQuestions = template.questions || [];
                   
                   return (
@@ -699,7 +701,8 @@ const EvaluationHistory: React.FC = () => {
                       const parts = key.split('-');
                       const subjectId = parts[0];
                       const subject = subjects.find(s => s.id === subjectId);
-                      const tplQ = ((template as any).templateQuestions || []).find((q: any) => 
+                      // Support cả camelCase và snake_case
+                      const tplQ = ((template as any).templateQuestions || (template as any).template_questions || []).find((q: any) => 
                         key.includes(q.id)
                       );
                       

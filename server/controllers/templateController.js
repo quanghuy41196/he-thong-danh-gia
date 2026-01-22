@@ -111,6 +111,20 @@ const writeJSONFile = (file, data) => {
 // Check if PostgreSQL is available
 let usePostgres = true;
 
+// Helper: Convert PostgreSQL row to frontend format (support both snake_case and camelCase)
+function formatTemplateResponse(row) {
+  if (!row) return null;
+  return {
+    ...row,
+    // Add camelCase aliases for frontend compatibility
+    templateQuestions: row.template_questions || row.templateQuestions || [],
+    subjectQuestions: row.subject_questions || row.subjectQuestions || [],
+    isActive: row.is_active !== undefined ? row.is_active : row.isActive,
+    createdAt: row.created_at || row.createdAt,
+    updatedAt: row.updated_at || row.updatedAt,
+  };
+}
+
 // Get all templates
 export async function getAllTemplates(req, res) {
   if (!usePostgres) {
@@ -123,7 +137,7 @@ export async function getAllTemplates(req, res) {
     const result = await pool.query(
       'SELECT * FROM question_templates ORDER BY created_at DESC'
     );
-    res.json(result.rows);
+    res.json(result.rows.map(formatTemplateResponse));
   } catch (error) {
     console.error('Error fetching templates from PostgreSQL, using JSON fallback:', error);
     usePostgres = false;
@@ -142,7 +156,7 @@ export async function getTemplateById(req, res) {
     if (!template) {
       return res.status(404).json({ error: 'Không tìm thấy template' });
     }
-    return res.json(template);
+    return res.json(formatTemplateResponse(template));
   }
 
   try {
@@ -155,7 +169,7 @@ export async function getTemplateById(req, res) {
       return res.status(404).json({ error: 'Không tìm thấy template' });
     }
     
-    res.json(result.rows[0]);
+    res.json(formatTemplateResponse(result.rows[0]));
   } catch (error) {
     console.error('Error fetching template, using JSON fallback:', error);
     usePostgres = false;
@@ -164,7 +178,7 @@ export async function getTemplateById(req, res) {
     if (!template) {
       return res.status(404).json({ error: 'Không tìm thấy template' });
     }
-    res.json(template);
+    res.json(formatTemplateResponse(template));
   }
 }
 
@@ -178,7 +192,7 @@ export async function getTemplateBySlug(req, res) {
     if (!template) {
       return res.status(404).json({ error: 'Không tìm thấy template' });
     }
-    return res.json(template);
+    return res.json(formatTemplateResponse(template));
   }
 
   try {
@@ -191,7 +205,7 @@ export async function getTemplateBySlug(req, res) {
       return res.status(404).json({ error: 'Không tìm thấy template' });
     }
     
-    res.json(result.rows[0]);
+    res.json(formatTemplateResponse(result.rows[0]));
   } catch (error) {
     console.error('Error fetching template by slug:', error);
     usePostgres = false;
@@ -200,7 +214,7 @@ export async function getTemplateBySlug(req, res) {
     if (!template) {
       return res.status(404).json({ error: 'Không tìm thấy template' });
     }
-    res.json(template);
+    res.json(formatTemplateResponse(template));
   }
 }
 
@@ -256,14 +270,14 @@ export async function createTemplate(req, res) {
       ]
     );
     
-    res.status(201).json(result.rows[0]);
+    res.status(201).json(formatTemplateResponse(result.rows[0]));
   } catch (error) {
     console.error('Error creating template, using JSON fallback:', error);
     usePostgres = false;
     const templates = readJSONFile(TEMPLATES_FILE);
     templates.push(newTemplate);
     if (writeJSONFile(TEMPLATES_FILE, templates)) {
-      res.status(201).json(newTemplate);
+      res.status(201).json(formatTemplateResponse(newTemplate));
     } else {
       res.status(500).json({ error: 'Lỗi khi lưu template' });
     }
@@ -331,7 +345,7 @@ export async function updateTemplate(req, res) {
       return res.status(404).json({ error: 'Không tìm thấy template' });
     }
     
-    res.json(result.rows[0]);
+    res.json(formatTemplateResponse(result.rows[0]));
   } catch (error) {
     console.error('Error updating template, using JSON fallback:', error);
     usePostgres = false;
@@ -356,7 +370,7 @@ export async function updateTemplate(req, res) {
     };
     
     if (writeJSONFile(TEMPLATES_FILE, templates)) {
-      res.json(templates[index]);
+      res.json(formatTemplateResponse(templates[index]));
     } else {
       res.status(500).json({ error: 'Lỗi khi cập nhật template' });
     }

@@ -42,23 +42,37 @@ const writeJSONFile = (file, data) => {
 // Check if PostgreSQL is available
 let usePostgres = true;
 
+// Helper: Convert PostgreSQL row to frontend format
+function formatEvaluationResponse(row) {
+  if (!row) return null;
+  return {
+    ...row,
+    // Add camelCase aliases for frontend compatibility
+    templateId: row.template_id || row.templateId,
+    sessionId: row.session_id || row.sessionId,
+    selectedSubjects: row.selected_subjects || row.selectedSubjects || [],
+    subjectDetails: row.subject_details || row.subjectDetails || [],
+    submittedAt: row.submitted_at || row.submittedAt,
+  };
+}
+
 // Get all evaluations
 export async function getAllEvaluations(req, res) {
   if (!usePostgres) {
     const evaluations = readJSONFile(EVALUATIONS_FILE);
-    return res.json(evaluations);
+    return res.json(evaluations.map(formatEvaluationResponse));
   }
 
   try {
     const result = await pool.query(
       'SELECT * FROM evaluation_responses ORDER BY submitted_at DESC'
     );
-    res.json(result.rows);
+    res.json(result.rows.map(formatEvaluationResponse));
   } catch (error) {
     console.error('Error fetching evaluations, using JSON fallback:', error);
     usePostgres = false;
     const evaluations = readJSONFile(EVALUATIONS_FILE);
-    res.json(evaluations);
+    res.json(evaluations.map(formatEvaluationResponse));
   }
 }
 
@@ -69,7 +83,7 @@ export async function getEvaluationsByTemplate(req, res) {
   if (!usePostgres) {
     const evaluations = readJSONFile(EVALUATIONS_FILE);
     const filtered = evaluations.filter(e => e.templateId === templateId);
-    return res.json(filtered);
+    return res.json(filtered.map(formatEvaluationResponse));
   }
 
   try {
@@ -77,13 +91,13 @@ export async function getEvaluationsByTemplate(req, res) {
       'SELECT * FROM evaluation_responses WHERE template_id = $1 ORDER BY submitted_at DESC',
       [templateId]
     );
-    res.json(result.rows);
+    res.json(result.rows.map(formatEvaluationResponse));
   } catch (error) {
     console.error('Error fetching evaluations, using JSON fallback:', error);
     usePostgres = false;
     const evaluations = readJSONFile(EVALUATIONS_FILE);
     const filtered = evaluations.filter(e => e.templateId === templateId);
-    res.json(filtered);
+    res.json(filtered.map(formatEvaluationResponse));
   }
 }
 
@@ -128,7 +142,7 @@ export async function submitEvaluation(req, res) {
     const evaluations = readJSONFile(EVALUATIONS_FILE);
     evaluations.push(evaluation);
     writeJSONFile(EVALUATIONS_FILE, evaluations);
-    return res.status(201).json(evaluation);
+    return res.status(201).json(formatEvaluationResponse(evaluation));
   }
 
   try {
@@ -148,15 +162,34 @@ export async function submitEvaluation(req, res) {
       ]
     );
     
-    res.status(201).json(result.rows[0]);
+    res.status(201).json(formatEvaluationResponse(result.rows[0]));
   } catch (error) {
     console.error('Error submitting evaluation, using JSON fallback:', error);
     usePostgres = false;
     const evaluations = readJSONFile(EVALUATIONS_FILE);
     evaluations.push(evaluation);
     writeJSONFile(EVALUATIONS_FILE, evaluations);
-    res.status(201).json(evaluation);
+    res.status(201).json(formatEvaluationResponse(evaluation));
   }
+}
+
+// Helper function to format template response
+function formatTemplate(template) {
+  if (!template) return null;
+  return {
+    id: template.id,
+    name: template.name,
+    slug: template.slug,
+    description: template.description,
+    roles: template.roles,
+    questions: template.questions,
+    subjects: template.subjects,
+    subjectQuestions: template.subject_questions || template.subjectQuestions,
+    templateQuestions: template.template_questions || template.templateQuestions,
+    isActive: template.is_active !== undefined ? template.is_active : template.isActive,
+    createdAt: template.created_at || template.createdAt,
+    updatedAt: template.updated_at || template.updatedAt
+  };
 }
 
 // Get template statistics
@@ -172,7 +205,7 @@ export async function getTemplateStatistics(req, res) {
         [templateId]
       );
       if (templateResult.rows.length > 0) {
-        template = templateResult.rows[0];
+        template = formatTemplate(templateResult.rows[0]);
       }
     }
     
@@ -193,16 +226,7 @@ export async function getTemplateStatistics(req, res) {
         'SELECT * FROM evaluation_responses WHERE template_id = $1 ORDER BY submitted_at DESC',
         [templateId]
       );
-      templateEvaluations = evalResult.rows.map(row => ({
-        id: row.id,
-        templateId: row.template_id,
-        department: row.department,
-        selectedSubjects: row.selected_subjects,
-        answers: row.answers,
-        subjectDetails: row.subject_details,
-        submittedAt: row.submitted_at,
-        status: row.status
-      }));
+      templateEvaluations = evalResult.rows.map(row => formatEvaluationResponse(row));
     }
     
     // Fallback to JSON if no results

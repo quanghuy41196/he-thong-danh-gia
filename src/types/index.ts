@@ -16,6 +16,7 @@ export interface Question {
   required: boolean;
   minChars?: number;
   options?: string[];
+  allowOther?: boolean; // Cho phép điền "Khác"
 }
 
 export interface SubjectInTemplate {

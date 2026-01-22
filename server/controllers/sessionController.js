@@ -20,6 +20,27 @@ if (!fs.existsSync(sessionsFilePath)) {
   fs.writeFileSync(sessionsFilePath, JSON.stringify([]));
 }
 
+// Helper function to format session response (snake_case to camelCase)
+function formatSessionResponse(session) {
+  if (!session) return null;
+  return {
+    id: session.id,
+    name: session.name,
+    description: session.description,
+    evaluatorEmail: session.evaluator_email || session.evaluatorEmail,
+    evaluatorName: session.evaluator_name || session.evaluatorName,
+    deadline: session.deadline,
+    subjects: session.subjects,
+    status: session.status,
+    token: session.token,
+    createdAt: session.created_at || session.createdAt,
+    // Also include snake_case for compatibility
+    evaluator_email: session.evaluator_email || session.evaluatorEmail,
+    evaluator_name: session.evaluator_name || session.evaluatorName,
+    created_at: session.created_at || session.createdAt
+  };
+}
+
 // Helper function to read sessions from file
 function readSessionsFromFile() {
   try {
@@ -46,7 +67,7 @@ export async function getAllSessions(req, res) {
     const result = await pool.query(
       'SELECT * FROM evaluation_sessions ORDER BY created_at DESC'
     );
-    res.json(result.rows);
+    res.json(result.rows.map(formatSessionResponse));
   } catch (error) {
     console.error('Error fetching sessions from DB, using file:', error);
     // Fallback to file
@@ -68,7 +89,7 @@ export async function getSessionById(req, res) {
       return res.status(404).json({ error: 'Không tìm thấy session' });
     }
     
-    res.json(result.rows[0]);
+    res.json(formatSessionResponse(result.rows[0]));
   } catch (error) {
     console.error('Error fetching session from DB, using file:', error);
     // Fallback to file
@@ -95,7 +116,7 @@ export async function getSessionByToken(req, res) {
       return res.status(404).json({ error: 'Không tìm thấy session' });
     }
     
-    res.json(result.rows[0]);
+    res.json(formatSessionResponse(result.rows[0]));
   } catch (error) {
     console.error('Error fetching session by token from DB, using file:', error);
     // Fallback to file
@@ -150,7 +171,7 @@ export async function createSession(req, res) {
         token
       ]
     );
-    res.status(201).json(result.rows[0]);
+    res.status(201).json(formatSessionResponse(result.rows[0]));
   } catch (dbError) {
     console.error('PostgreSQL error, using JSON fallback:', dbError.message);
     // Fallback to file
@@ -158,7 +179,7 @@ export async function createSession(req, res) {
       const sessions = readSessionsFromFile();
       sessions.push(sessionData);
       writeSessionsToFile(sessions);
-      res.status(201).json(sessionData);
+      res.status(201).json(formatSessionResponse(sessionData));
     } catch (fileError) {
       console.error('File fallback error:', fileError);
       res.status(500).json({ error: 'Lỗi khi tạo session' });
@@ -194,7 +215,7 @@ export async function updateSession(req, res) {
       return res.status(404).json({ error: 'Không tìm thấy session' });
     }
     
-    res.json(result.rows[0]);
+    res.json(formatSessionResponse(result.rows[0]));
   } catch (error) {
     console.error('Error updating session:', error);
     res.status(500).json({ error: 'Lỗi khi cập nhật session' });

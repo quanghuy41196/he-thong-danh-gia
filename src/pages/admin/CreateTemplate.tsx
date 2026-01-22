@@ -60,7 +60,8 @@ const CreateTemplate: React.FC = () => {
       setCommonQuestions(template.questions || []);
       
       // Fill in template questions (with {name} variable)
-      const tplQuestions = (template as any).templateQuestions || [];
+      // Support cả camelCase (frontend) và snake_case (PostgreSQL)
+      const tplQuestions = template.templateQuestions || template.template_questions || [];
       setTemplateQuestions(tplQuestions);
       
       // Fill in selected subjects
@@ -68,7 +69,8 @@ const CreateTemplate: React.FC = () => {
       setSelectedSubjects(subjectIds);
       
       // Fill in individual subject questions
-      const subjectQuestionsArray = (template as any).subjectQuestions || (template as any).subject_questions || [];
+      // Support cả camelCase và snake_case
+      const subjectQuestionsArray = template.subjectQuestions || template.subject_questions || [];
       const subjectQuestionsMap: Record<string, Question[]> = {};
       subjectQuestionsArray.forEach((sq: any) => {
         subjectQuestionsMap[sq.subjectId] = sq.questions || [];
@@ -379,6 +381,8 @@ const CreateTemplate: React.FC = () => {
                             { value: 'rating-5', label: 'Đánh giá (1-5 sao)' },
                             { value: 'rating-10', label: 'Đánh giá (1-10 điểm)' },
                             { value: 'text', label: 'Văn bản' },
+                            { value: 'single-choice', label: 'Chọn một' },
+                            { value: 'multiple-choice', label: 'Chọn nhiều' },
                             { value: 'yes-no', label: 'Có/Không' },
                             { value: 'ranking', label: 'Sắp xếp thứ hạng' },
                           ]}
@@ -403,6 +407,57 @@ const CreateTemplate: React.FC = () => {
                             updateCommonQuestion(question.id, 'minChars', parseInt(e.target.value))
                           }
                         />
+                      )}
+
+                      {/* Options cho single-choice và multiple-choice */}
+                      {(question.type === 'single-choice' || question.type === 'multiple-choice') && (
+                        <div className="space-y-3 p-4 bg-gray-50 rounded-lg">
+                          <div className="flex items-center justify-between">
+                            <label className="text-sm font-medium text-gray-700">Các lựa chọn</label>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newOptions = [...(question.options || []), ''];
+                                updateCommonQuestion(question.id, 'options', newOptions);
+                              }}
+                              className="text-sm text-purple-600 hover:text-purple-700 font-medium"
+                            >
+                              + Thêm lựa chọn
+                            </button>
+                          </div>
+                          {(question.options || []).map((option, optIdx) => (
+                            <div key={optIdx} className="flex items-center gap-2">
+                              <Input
+                                value={option}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                                  const newOptions = [...(question.options || [])];
+                                  newOptions[optIdx] = e.target.value;
+                                  updateCommonQuestion(question.id, 'options', newOptions);
+                                }}
+                                placeholder={`Lựa chọn ${optIdx + 1}`}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const newOptions = (question.options || []).filter((_, i) => i !== optIdx);
+                                  updateCommonQuestion(question.id, 'options', newOptions);
+                                }}
+                                className="p-2 text-red-500 hover:bg-red-50 rounded"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          ))}
+                          <label className="flex items-center gap-2 text-sm text-gray-600">
+                            <input
+                              type="checkbox"
+                              checked={question.allowOther || false}
+                              onChange={(e) => updateCommonQuestion(question.id, 'allowOther', e.target.checked)}
+                              className="rounded border-gray-300"
+                            />
+                            Cho phép điền "Khác"
+                          </label>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -524,6 +579,8 @@ const CreateTemplate: React.FC = () => {
                               { value: 'rating-5', label: 'Đánh giá (1-5 sao)' },
                               { value: 'rating-10', label: 'Đánh giá (1-10 điểm)' },
                               { value: 'text', label: 'Văn bản' },
+                              { value: 'single-choice', label: 'Chọn một' },
+                              { value: 'multiple-choice', label: 'Chọn nhiều' },
                               { value: 'yes-no', label: 'Có/Không' },
                               { value: 'ranking', label: 'Sắp xếp thứ hạng' },
                             ]}
@@ -548,6 +605,57 @@ const CreateTemplate: React.FC = () => {
                               updateTemplateQuestion(question.id, 'minChars', parseInt(e.target.value))
                             }
                           />
+                        )}
+
+                        {/* Options cho single-choice và multiple-choice */}
+                        {(question.type === 'single-choice' || question.type === 'multiple-choice') && (
+                          <div className="space-y-3 p-4 bg-gray-50 rounded-lg">
+                            <div className="flex items-center justify-between">
+                              <label className="text-sm font-medium text-gray-700">Các lựa chọn</label>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const newOptions = [...(question.options || []), ''];
+                                  updateTemplateQuestion(question.id, 'options', newOptions);
+                                }}
+                                className="text-sm text-green-600 hover:text-green-700 font-medium"
+                              >
+                                + Thêm lựa chọn
+                              </button>
+                            </div>
+                            {(question.options || []).map((option, optIdx) => (
+                              <div key={optIdx} className="flex items-center gap-2">
+                                <Input
+                                  value={option}
+                                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                                    const newOptions = [...(question.options || [])];
+                                    newOptions[optIdx] = e.target.value;
+                                    updateTemplateQuestion(question.id, 'options', newOptions);
+                                  }}
+                                  placeholder={`Lựa chọn ${optIdx + 1}`}
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const newOptions = (question.options || []).filter((_, i) => i !== optIdx);
+                                    updateTemplateQuestion(question.id, 'options', newOptions);
+                                  }}
+                                  className="p-2 text-red-500 hover:bg-red-50 rounded"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            ))}
+                            <label className="flex items-center gap-2 text-sm text-gray-600">
+                              <input
+                                type="checkbox"
+                                checked={question.allowOther || false}
+                                onChange={(e) => updateTemplateQuestion(question.id, 'allowOther', e.target.checked)}
+                                className="rounded border-gray-300"
+                              />
+                              Cho phép điền "Khác"
+                            </label>
+                          </div>
                         )}
 
                         {/* Preview */}
@@ -692,6 +800,8 @@ const CreateTemplate: React.FC = () => {
                                   { value: 'rating-5', label: 'Đánh giá (1-5 sao)' },
                                   { value: 'rating-10', label: 'Đánh giá (1-10 điểm)' },
                                   { value: 'text', label: 'Văn bản' },
+                                  { value: 'single-choice', label: 'Chọn một' },
+                                  { value: 'multiple-choice', label: 'Chọn nhiều' },
                                   { value: 'yes-no', label: 'Có/Không' },
                                   { value: 'ranking', label: 'Sắp xếp thứ hạng' },
                                 ]}
@@ -726,6 +836,57 @@ const CreateTemplate: React.FC = () => {
                                   )
                                 }
                               />
+                            )}
+
+                            {/* Options cho single-choice và multiple-choice */}
+                            {(question.type === 'single-choice' || question.type === 'multiple-choice') && (
+                              <div className="space-y-3 p-4 bg-gray-50 rounded-lg">
+                                <div className="flex items-center justify-between">
+                                  <label className="text-sm font-medium text-gray-700">Các lựa chọn</label>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const newOptions = [...(question.options || []), ''];
+                                      updateQuestionForSubject(activeSubjectTab, question.id, 'options', newOptions);
+                                    }}
+                                    className="text-sm text-purple-600 hover:text-purple-700 font-medium"
+                                  >
+                                    + Thêm lựa chọn
+                                  </button>
+                                </div>
+                                {(question.options || []).map((option, optIdx) => (
+                                  <div key={optIdx} className="flex items-center gap-2">
+                                    <Input
+                                      value={option}
+                                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                                        const newOptions = [...(question.options || [])];
+                                        newOptions[optIdx] = e.target.value;
+                                        updateQuestionForSubject(activeSubjectTab, question.id, 'options', newOptions);
+                                      }}
+                                      placeholder={`Lựa chọn ${optIdx + 1}`}
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const newOptions = (question.options || []).filter((_, i) => i !== optIdx);
+                                        updateQuestionForSubject(activeSubjectTab, question.id, 'options', newOptions);
+                                      }}
+                                      className="p-2 text-red-500 hover:bg-red-50 rounded"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </button>
+                                  </div>
+                                ))}
+                                <label className="flex items-center gap-2 text-sm text-gray-600">
+                                  <input
+                                    type="checkbox"
+                                    checked={question.allowOther || false}
+                                    onChange={(e) => updateQuestionForSubject(activeSubjectTab, question.id, 'allowOther', e.target.checked)}
+                                    className="rounded border-gray-300"
+                                  />
+                                  Cho phép điền "Khác"
+                                </label>
+                              </div>
                             )}
                           </div>
                         </div>

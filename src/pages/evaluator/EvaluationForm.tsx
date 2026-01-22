@@ -69,7 +69,8 @@ const EvaluationForm: React.FC = () => {
     if (!template || !currentSubject) return [];
     
     // Template questions with {name} variable - replace with current subject name
-    const templateQuestionsRaw = (template as any).templateQuestions || [];
+    // Support cả camelCase và snake_case từ database
+    const templateQuestionsRaw = (template as any).templateQuestions || (template as any).template_questions || [];
     const templateQuestions = templateQuestionsRaw.map((q: Question) => ({
       ...q,
       id: `tpl-${currentSubject.id}-${q.id}`,
@@ -168,7 +169,8 @@ const EvaluationForm: React.FC = () => {
     if (!subject) return false;
     
     // Get questions for this subject (only template questions with {name} and individual)
-    const templateQuestionsRaw = (template as any)?.templateQuestions || [];
+    // Support cả camelCase và snake_case từ database
+    const templateQuestionsRaw = (template as any)?.templateQuestions || (template as any)?.template_questions || [];
     const subjectQuestionsArray = (template as any)?.subjectQuestions || (template as any)?.subject_questions || [];
     const subjectQuestionData = subjectQuestionsArray.find(
       (sq: any) => sq.subjectId === subject.id
@@ -473,13 +475,102 @@ const EvaluationForm: React.FC = () => {
                                   type="radio"
                                   name={`${currentSubject.id}-${question.id}`}
                                   value={option}
-                                  checked={getAnswer(question.id) === option}
+                                  checked={getAnswer(question.id) === option || (getAnswer(question.id)?.startsWith?.('other:') && option === '__other__')}
                                   onChange={(e) => handleAnswerChange(question.id, e.target.value)}
                                   className="w-4 h-4 text-purple-600 focus:ring-purple-500"
                                 />
                                 <span className="ml-3 text-gray-700">{option}</span>
                               </label>
                             ))}
+                            {question.allowOther && (
+                              <div className="p-3 bg-white border border-gray-200 rounded-lg">
+                                <label className="flex items-center cursor-pointer">
+                                  <input
+                                    type="radio"
+                                    name={`${currentSubject.id}-${question.id}`}
+                                    checked={getAnswer(question.id)?.startsWith?.('other:')}
+                                    onChange={() => handleAnswerChange(question.id, 'other:')}
+                                    className="w-4 h-4 text-purple-600 focus:ring-purple-500"
+                                  />
+                                  <span className="ml-3 text-gray-700">Khác:</span>
+                                </label>
+                                {getAnswer(question.id)?.startsWith?.('other:') && (
+                                  <input
+                                    type="text"
+                                    value={getAnswer(question.id)?.replace('other:', '') || ''}
+                                    onChange={(e) => handleAnswerChange(question.id, `other:${e.target.value}`)}
+                                    placeholder="Nhập câu trả lời khác..."
+                                    className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                                  />
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {question.type === 'multiple-choice' && question.options && (
+                          <div className="space-y-2">
+                            {question.options.map((option, optIndex) => {
+                              const currentAnswer = getAnswer(question.id) || [];
+                              const selectedOptions = Array.isArray(currentAnswer) ? currentAnswer : [];
+                              return (
+                                <label key={optIndex} className="flex items-center p-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                  <input
+                                    type="checkbox"
+                                    checked={selectedOptions.includes(option)}
+                                    onChange={(e) => {
+                                      let newSelected = [...selectedOptions.filter((o: string) => !o.startsWith?.('other:') || o !== option)];
+                                      if (e.target.checked) {
+                                        newSelected.push(option);
+                                      } else {
+                                        newSelected = newSelected.filter((o: string) => o !== option);
+                                      }
+                                      handleAnswerChange(question.id, newSelected);
+                                    }}
+                                    className="w-4 h-4 text-purple-600 focus:ring-purple-500 rounded"
+                                  />
+                                  <span className="ml-3 text-gray-700">{option}</span>
+                                </label>
+                              );
+                            })}
+                            {question.allowOther && (
+                              <div className="p-3 bg-white border border-gray-200 rounded-lg">
+                                <label className="flex items-center cursor-pointer">
+                                  <input
+                                    type="checkbox"
+                                    checked={(getAnswer(question.id) || []).some?.((o: string) => o.startsWith?.('other:'))}
+                                    onChange={(e) => {
+                                      const currentAnswer = getAnswer(question.id) || [];
+                                      let newSelected = Array.isArray(currentAnswer) ? [...currentAnswer] : [];
+                                      if (e.target.checked) {
+                                        newSelected = newSelected.filter((o: string) => !o.startsWith?.('other:'));
+                                        newSelected.push('other:');
+                                      } else {
+                                        newSelected = newSelected.filter((o: string) => !o.startsWith?.('other:'));
+                                      }
+                                      handleAnswerChange(question.id, newSelected);
+                                    }}
+                                    className="w-4 h-4 text-purple-600 focus:ring-purple-500 rounded"
+                                  />
+                                  <span className="ml-3 text-gray-700">Khác:</span>
+                                </label>
+                                {(getAnswer(question.id) || []).some?.((o: string) => o.startsWith?.('other:')) && (
+                                  <input
+                                    type="text"
+                                    value={(getAnswer(question.id) || []).find?.((o: string) => o.startsWith?.('other:'))?.replace('other:', '') || ''}
+                                    onChange={(e) => {
+                                      const currentAnswer = getAnswer(question.id) || [];
+                                      let newSelected = Array.isArray(currentAnswer) ? [...currentAnswer] : [];
+                                      newSelected = newSelected.filter((o: string) => !o.startsWith?.('other:'));
+                                      newSelected.push(`other:${e.target.value}`);
+                                      handleAnswerChange(question.id, newSelected);
+                                    }}
+                                    placeholder="Nhập câu trả lời khác..."
+                                    className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                                  />
+                                )}
+                              </div>
+                            )}
                           </div>
                         )}
 
@@ -617,6 +708,113 @@ const EvaluationForm: React.FC = () => {
                         rows={4}
                         showCharCount
                       />
+                    )}
+
+                    {question.type === 'single-choice' && question.options && (
+                      <div className="space-y-2">
+                        {question.options.map((option, optIndex) => (
+                          <label key={optIndex} className="flex items-center p-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                            <input
+                              type="radio"
+                              name={`common-${question.id}`}
+                              value={option}
+                              checked={answers[`common-${question.id}`] === option || (answers[`common-${question.id}`]?.startsWith?.('other:') && false)}
+                              onChange={(e) => setAnswers({...answers, [`common-${question.id}`]: e.target.value})}
+                              className="w-4 h-4 text-purple-600 focus:ring-purple-500"
+                            />
+                            <span className="ml-3 text-gray-700">{option}</span>
+                          </label>
+                        ))}
+                        {question.allowOther && (
+                          <div className="p-3 bg-white border border-gray-200 rounded-lg">
+                            <label className="flex items-center cursor-pointer">
+                              <input
+                                type="radio"
+                                name={`common-${question.id}`}
+                                checked={answers[`common-${question.id}`]?.startsWith?.('other:')}
+                                onChange={() => setAnswers({...answers, [`common-${question.id}`]: 'other:'})}
+                                className="w-4 h-4 text-purple-600 focus:ring-purple-500"
+                              />
+                              <span className="ml-3 text-gray-700">Khác:</span>
+                            </label>
+                            {answers[`common-${question.id}`]?.startsWith?.('other:') && (
+                              <input
+                                type="text"
+                                value={answers[`common-${question.id}`]?.replace('other:', '') || ''}
+                                onChange={(e) => setAnswers({...answers, [`common-${question.id}`]: `other:${e.target.value}`})}
+                                placeholder="Nhập câu trả lời khác..."
+                                className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                              />
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {question.type === 'multiple-choice' && question.options && (
+                      <div className="space-y-2">
+                        {question.options.map((option, optIndex) => {
+                          const currentAnswer = answers[`common-${question.id}`] || [];
+                          const selectedOptions = Array.isArray(currentAnswer) ? currentAnswer : [];
+                          return (
+                            <label key={optIndex} className="flex items-center p-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={selectedOptions.includes(option)}
+                                onChange={(e) => {
+                                  let newSelected = [...selectedOptions];
+                                  if (e.target.checked) {
+                                    newSelected.push(option);
+                                  } else {
+                                    newSelected = newSelected.filter((o: string) => o !== option);
+                                  }
+                                  setAnswers({...answers, [`common-${question.id}`]: newSelected});
+                                }}
+                                className="w-4 h-4 text-purple-600 focus:ring-purple-500 rounded"
+                              />
+                              <span className="ml-3 text-gray-700">{option}</span>
+                            </label>
+                          );
+                        })}
+                        {question.allowOther && (
+                          <div className="p-3 bg-white border border-gray-200 rounded-lg">
+                            <label className="flex items-center cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={(answers[`common-${question.id}`] || []).some?.((o: string) => o.startsWith?.('other:'))}
+                                onChange={(e) => {
+                                  const currentAnswer = answers[`common-${question.id}`] || [];
+                                  let newSelected = Array.isArray(currentAnswer) ? [...currentAnswer] : [];
+                                  if (e.target.checked) {
+                                    newSelected = newSelected.filter((o: string) => !o.startsWith?.('other:'));
+                                    newSelected.push('other:');
+                                  } else {
+                                    newSelected = newSelected.filter((o: string) => !o.startsWith?.('other:'));
+                                  }
+                                  setAnswers({...answers, [`common-${question.id}`]: newSelected});
+                                }}
+                                className="w-4 h-4 text-purple-600 focus:ring-purple-500 rounded"
+                              />
+                              <span className="ml-3 text-gray-700">Khác:</span>
+                            </label>
+                            {(answers[`common-${question.id}`] || []).some?.((o: string) => o.startsWith?.('other:')) && (
+                              <input
+                                type="text"
+                                value={(answers[`common-${question.id}`] || []).find?.((o: string) => o.startsWith?.('other:'))?.replace('other:', '') || ''}
+                                onChange={(e) => {
+                                  const currentAnswer = answers[`common-${question.id}`] || [];
+                                  let newSelected = Array.isArray(currentAnswer) ? [...currentAnswer] : [];
+                                  newSelected = newSelected.filter((o: string) => !o.startsWith?.('other:'));
+                                  newSelected.push(`other:${e.target.value}`);
+                                  setAnswers({...answers, [`common-${question.id}`]: newSelected});
+                                }}
+                                placeholder="Nhập câu trả lời khác..."
+                                className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                              />
+                            )}
+                          </div>
+                        )}
+                      </div>
                     )}
 
                     {question.type === 'ranking' && (
