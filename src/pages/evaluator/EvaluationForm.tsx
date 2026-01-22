@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
 import { Shield } from 'lucide-react';
-import { Card, CardContent } from '../../components/ui/Card';
+import React, { useEffect, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '../../components/ui/Button';
+import { Card, CardContent } from '../../components/ui/Card';
 import { Textarea } from '../../components/ui/Input';
 import { StarRating } from '../../components/ui/StarRating';
-import { templatesAPI, evaluationsAPI } from '../../services/api';
-import { QuestionTemplate, Question } from '../../types';
+import { evaluationsAPI, templatesAPI } from '../../services/api';
+import { Question, QuestionTemplate } from '../../types';
 
 const DEPARTMENTS = [
   'Phòng Kỹ thuật',
@@ -20,7 +20,7 @@ const DEPARTMENTS = [
 const EvaluationForm: React.FC = () => {
   const navigate = useNavigate();
   const { slug } = useParams();
-  
+
   const [template, setTemplate] = useState<QuestionTemplate | null>(null);
   const [currentSubjectIndex, setCurrentSubjectIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, any>>({});
@@ -39,14 +39,14 @@ const EvaluationForm: React.FC = () => {
     try {
       const response = await templatesAPI.getBySlug(slug || '');
       const templateData = response.data;
-      
+
       // Check if template is active (default to true if not set)
       if (templateData.isActive === false) {
         alert('Bộ câu hỏi này hiện đang tạm dừng nhận đánh giá.');
         navigate('/');
         return;
       }
-      
+
       setTemplate(templateData);
     } catch (error) {
       console.error('Error loading template:', error);
@@ -59,15 +59,15 @@ const EvaluationForm: React.FC = () => {
 
   // Get current subject and their questions
   const allSubjects = template?.subjects || [];
-  const subjects = selectedSubjects.length > 0 
+  const subjects = selectedSubjects.length > 0
     ? allSubjects.filter(s => selectedSubjects.includes(s.id))
     : allSubjects;
   const currentSubject = subjects[currentSubjectIndex];
-  
+
   // Get questions for current subject (only template questions with {name} and individual questions)
   const getCurrentSubjectQuestions = (): Question[] => {
     if (!template || !currentSubject) return [];
-    
+
     // Template questions with {name} variable - replace with current subject name
     // Support cả camelCase và snake_case từ database
     const templateQuestionsRaw = (template as any).templateQuestions || (template as any).template_questions || [];
@@ -77,14 +77,14 @@ const EvaluationForm: React.FC = () => {
       content: q.content.replace(/\{name\}/g, currentSubject.name),
       description: q.description?.replace(/\{name\}/g, currentSubject.name),
     }));
-    
+
     // Individual questions for this subject (check both camelCase and snake_case)
     const subjectQuestionsArray = (template as any).subjectQuestions || (template as any).subject_questions || [];
     const subjectQuestionData = subjectQuestionsArray.find(
       (sq: any) => sq.subjectId === currentSubject.id
     );
     const individualQuestions = subjectQuestionData?.questions || [];
-    
+
     return [...templateQuestions, ...individualQuestions];
   };
 
@@ -96,7 +96,7 @@ const EvaluationForm: React.FC = () => {
 
   const currentQuestions = getCurrentSubjectQuestions();
   const totalQuestions = currentQuestions.length;
-  const answeredQuestions = Object.keys(answers).filter(key => 
+  const answeredQuestions = Object.keys(answers).filter(key =>
     key.startsWith(`${currentSubject?.id}-`)
   ).length;
   const progress = totalQuestions > 0 ? (answeredQuestions / totalQuestions) * 100 : 0;
@@ -145,7 +145,7 @@ const EvaluationForm: React.FC = () => {
       try {
         // Prepare subject details
         const subjectDetails = subjects.map(s => ({ id: s.id, name: s.name }));
-        
+
         // Submit to API
         await evaluationsAPI.submit({
           templateId: template?.id,
@@ -154,7 +154,7 @@ const EvaluationForm: React.FC = () => {
           answers,
           subjectDetails,
         });
-        
+
         alert('Đánh giá của bạn đã được gửi thành công! 🎉');
         navigate('/');
       } catch (error) {
@@ -167,7 +167,7 @@ const EvaluationForm: React.FC = () => {
   const isSubjectCompleted = (index: number) => {
     const subject = subjects[index];
     if (!subject) return false;
-    
+
     // Get questions for this subject (only template questions with {name} and individual)
     // Support cả camelCase và snake_case từ database
     const templateQuestionsRaw = (template as any)?.templateQuestions || (template as any)?.template_questions || [];
@@ -177,7 +177,7 @@ const EvaluationForm: React.FC = () => {
     );
     const individualQuestions = subjectQuestionData?.questions || [];
     const totalQs = templateQuestionsRaw.length + individualQuestions.length;
-    
+
     const subjectAnswers = Object.keys(answers).filter(key => key.startsWith(`${subject.id}-`));
     return subjectAnswers.length >= totalQs;
   };
@@ -241,7 +241,7 @@ const EvaluationForm: React.FC = () => {
             <div className="text-center mb-6">
               {/* ViTech Logo */}
               <div className="flex justify-center mb-4">
-                <img src="/vitech-logo.svg" alt="ViTech Logo" className="w-32 h-32" />
+                <img src="/logo.png" alt="ViTech Logo" className="w-32 h-32" />
               </div>
               <h2 className="text-2xl font-bold text-gray-900 mb-3">{template.name}</h2>
               <div className="inline-flex items-center gap-2 bg-green-100 text-green-800 px-4 py-2 rounded-full text-sm">
@@ -254,7 +254,7 @@ const EvaluationForm: React.FC = () => {
             {template.description && (
               <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                 <h3 className="font-semibold text-blue-900 mb-2">📋 Về đánh giá này:</h3>
-                <div 
+                <div
                   className="text-sm text-blue-800 prose prose-sm prose-blue max-w-none
                     [&_strong]:font-bold [&_strong]:text-blue-900
                     [&_em]:italic [&_em]:text-purple-700
@@ -309,8 +309,8 @@ const EvaluationForm: React.FC = () => {
 
   // Toggle subject selection
   const toggleSubject = (subjectId: string) => {
-    setSelectedSubjects(prev => 
-      prev.includes(subjectId) 
+    setSelectedSubjects(prev =>
+      prev.includes(subjectId)
         ? prev.filter(id => id !== subjectId)
         : [...prev, subjectId]
     );
@@ -326,7 +326,7 @@ const EvaluationForm: React.FC = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               {/* ViTech Logo */}
-              <img src="/vitech-logo.svg" alt="ViTech Logo" className="w-10 h-10" />
+              <img src="/logo.png" alt="ViTech Logo" className="w-10 h-10" />
               <div>
                 <h1 className="text-lg font-bold text-gray-900">{template.name}</h1>
                 <p className="text-xs text-gray-600">Phòng ban: {department}</p>
@@ -399,7 +399,7 @@ const EvaluationForm: React.FC = () => {
                 {subjects.map((subject, index) => {
                   const subjectAnswerCount = Object.keys(answers).filter(key => key.startsWith(`${subject.id}-`)).length;
                   const subjectTotalQuestions = getCurrentSubjectQuestions().length;
-                  
+
                   return (
                     <button
                       key={subject.id}
@@ -581,20 +581,20 @@ const EvaluationForm: React.FC = () => {
                             </p>
                             {(() => {
                               const rankingAnswer = getAnswer(question.id) || {};
-                              
+
                               return subjects.map((_, rankIndex) => {
                                 const currentRank = rankIndex + 1;
                                 const currentSelection = rankingAnswer[currentRank];
-                                
+
                                 // Get available options: not selected in earlier ranks
                                 const earlierSelections = Object.entries(rankingAnswer)
                                   .filter(([rank]) => parseInt(rank) < currentRank)
                                   .map(([_, value]) => value);
-                                
+
                                 const availableOptions = subjects.filter(
                                   s => !earlierSelections.includes(s.id) || s.id === currentSelection
                                 );
-                                
+
                                 return (
                                   <div key={rankIndex} className="flex items-center gap-3">
                                     <span className="w-8 h-8 flex items-center justify-center bg-purple-100 text-purple-800 font-bold rounded-full">
@@ -824,20 +824,20 @@ const EvaluationForm: React.FC = () => {
                         </p>
                         {(() => {
                           const rankingAnswer = answers[`common-${question.id}`] || {};
-                          
+
                           return allSubjects.map((_, rankIndex) => {
                             const currentRank = rankIndex + 1;
                             const currentSelection = rankingAnswer[currentRank];
-                            
+
                             // Get available options: not selected in earlier ranks
                             const earlierSelections = Object.entries(rankingAnswer)
                               .filter(([rank]) => parseInt(rank) < currentRank)
                               .map(([_, value]) => value);
-                            
+
                             const availableOptions = allSubjects.filter(
                               s => !earlierSelections.includes(s.id) || s.id === currentSelection
                             );
-                            
+
                             return (
                               <div key={rankIndex} className="flex items-center gap-3">
                                 <span className="w-8 h-8 flex items-center justify-center bg-purple-100 text-purple-800 font-bold rounded-full">
