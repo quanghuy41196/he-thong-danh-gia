@@ -47,6 +47,7 @@ export const evaluationsAPI = {
   getStatistics: (templateId: string) => api.get(`/evaluations/template/${templateId}/statistics`),
   submit: (evaluation: any) => api.post('/evaluations', evaluation),
   delete: (id: string) => api.delete(`/evaluations/${id}`),
+  deleteAllByTemplate: (templateId: string) => api.delete(`/evaluations/template/${templateId}`),
 };
 
 // Health check

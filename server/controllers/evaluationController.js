@@ -340,6 +340,27 @@ export async function deleteEvaluation(req, res) {
   }
 }
 
+// Delete all evaluations by template
+export async function deleteAllEvaluationsByTemplate(req, res) {
+  const { templateId } = req.params;
+  
+  if (!usePostgres) {
+    const evaluations = readJSONFile(EVALUATIONS_FILE);
+    const filtered = evaluations.filter(e => e.templateId !== templateId);
+    const deletedCount = evaluations.length - filtered.length;
+    writeJSONFile(EVALUATIONS_FILE, filtered);
+    return res.json({ message: `Đã xóa ${deletedCount} đánh giá`, deletedCount });
+  }
+
+  try {
+    const result = await pool.query('DELETE FROM evaluation_responses WHERE template_id = $1', [templateId]);
+    res.json({ message: `Đã xóa ${result.rowCount} đánh giá`, deletedCount: result.rowCount });
+  } catch (error) {
+    console.error('Error deleting all evaluations:', error);
+    res.status(500).json({ error: 'Lỗi khi xóa tất cả đánh giá' });
+  }
+}
+
 // Get session statistics (legacy)
 export async function getSessionStatistics(req, res) {
   try {

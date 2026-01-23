@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Download, Eye, Trash2, BarChart3, Users, Calendar, Building2 } from 'lucide-react';
+import { ArrowLeft, Download, Eye, Trash2, BarChart3, Users, Calendar, Building2, RefreshCw } from 'lucide-react';
 import { Card, CardHeader, CardContent } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { StarRating } from '../../components/ui/StarRating';
@@ -71,6 +71,27 @@ const EvaluationHistory: React.FC = () => {
     } catch (error) {
       console.error('Error deleting evaluation:', error);
       alert('Lỗi khi xóa đánh giá');
+    }
+  };
+
+  const handleClearAll = async () => {
+    if (!templateId) return;
+    if (evaluations.length === 0) {
+      alert('Không có đánh giá nào để xóa');
+      return;
+    }
+    
+    const confirmMessage = `Bạn có chắc muốn xóa TẤT CẢ ${evaluations.length} đánh giá?\n\nHành động này không thể hoàn tác!`;
+    if (!confirm(confirmMessage)) return;
+    
+    try {
+      await evaluationsAPI.deleteAllByTemplate(templateId);
+      setEvaluations([]);
+      setStatistics(prev => prev ? { ...prev, totalResponses: 0, departmentStats: {}, subjectStats: {}, rankingData: {}, evaluations: [] } : null);
+      alert('Đã xóa tất cả đánh giá');
+    } catch (error) {
+      console.error('Error clearing all evaluations:', error);
+      alert('Lỗi khi xóa tất cả đánh giá');
     }
   };
 
@@ -301,6 +322,13 @@ const EvaluationHistory: React.FC = () => {
           
           <Button onClick={exportToExcel} icon={<Download className="w-4 h-4" />}>
             Xuất Excel
+          </Button>
+          <Button 
+            onClick={handleClearAll} 
+            variant="danger"
+            icon={<RefreshCw className="w-4 h-4" />}
+          >
+            Làm mới
           </Button>
         </div>
       </div>

@@ -253,7 +253,6 @@ const EvaluationForm: React.FC = () => {
             {/* Description */}
             {template.description && (
               <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <h3 className="font-semibold text-blue-900 mb-2">📋 Về đánh giá này:</h3>
                 <div
                   className="text-sm text-blue-800 prose prose-sm prose-blue max-w-none
                     [&_strong]:font-bold [&_strong]:text-blue-900
